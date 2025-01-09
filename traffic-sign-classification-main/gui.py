@@ -1,121 +1,181 @@
-import tkinter as tk
-from tkinter import filedialog
-from tkinter import *
-from PIL import ImageTk, Image
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QFileDialog, QHBoxLayout, QTableWidget, QTableWidgetItem
+from PyQt5.QtGui import QImage, QPixmap, QFont
+from PyQt5.QtCore import Qt
+import numpy as np
+from PIL import Image
+import tensorflow as tf
 
 import numpy
 #load the trained model to classify sign
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 model = load_model('my_model.h5')
 
 #dictionary to label all traffic signs class.
-classes = { 1:'Speed limit (20km/h)',
-            2:'Speed limit (30km/h)',      
-            3:'Speed limit (50km/h)',       
-            4:'Speed limit (60km/h)',      
-            5:'Speed limit (70km/h)',    
-            6:'Speed limit (80km/h)',      
-            7:'End of speed limit (80km/h)',     
-            8:'Speed limit (100km/h)',    
-            9:'Speed limit (120km/h)',     
-           10:'No passing',   
-           11:'No passing veh over 3.5 tons',     
-           12:'Right-of-way at intersection',     
-           13:'Priority road',    
-           14:'Yield',     
-           15:'Stop',       
-           16:'No vehicles',       
-           17:'Veh > 3.5 tons prohibited',       
-           18:'No entry',       
-           19:'General caution',     
-           20:'Dangerous curve left',      
-           21:'Dangerous curve right',   
-           22:'Double curve',      
-           23:'Bumpy road',     
-           24:'Slippery road',       
-           25:'Road narrows on the right',  
-           26:'Road work',    
-           27:'Traffic signals',      
-           28:'Pedestrians',     
-           29:'Children crossing',     
-           30:'Bicycles crossing',       
-           31:'Beware of ice/snow',
-           32:'Wild animals crossing',      
-           33:'End speed + passing limits',      
-           34:'Turn right ahead',     
-           35:'Turn left ahead',       
-           36:'Ahead only',      
-           37:'Go straight or right',      
-           38:'Go straight or left',      
-           39:'Keep right',     
-           40:'Keep left',      
-           41:'Roundabout mandatory',     
-           42:'End of no passing',      
-           43:'End no passing veh > 3.5 tons' }
+classes = {  
+    1: 'Giới hạn tốc độ (20km/h)',
+    2: 'Giới hạn tốc độ (30km/h)',      
+    3: 'Giới hạn tốc độ (50km/h)',       
+    4: 'Giới hạn tốc độ (60km/h)',      
+    5: 'Giới hạn tốc độ (70km/h)',    
+    6: 'Giới hạn tốc độ (80km/h)',      
+    7: 'Hết giới hạn tốc độ (80km/h)',     
+    8: 'Giới hạn tốc độ (100km/h)',    
+    9: 'Giới hạn tốc độ (120km/h)',     
+    10: 'Cấm vượt',   
+    11: 'Cấm vượt phương tiện trên 3.5 tấn',     
+    12: 'Đường ưu tiên',    
+    13: 'Nhường đường tại giao lộ',     
+    14: 'yield',     
+    15: 'Dừng lại',       
+    16: 'Cấm phương tiện',       
+    17: 'Cấm phương tiện > 3.5 tấn',       
+    18: 'Cấm vào',       
+    19: 'Cảnh báo chung',     
+    20: 'Khúc cua nguy hiểm bên trái',      
+    21: 'Khúc cua nguy hiểm bên phải',   
+    22: 'Cua đôi',      
+    23: 'Đường gồ ghề',     
+    24: 'Đường trơn',       
+    25: 'Đoạn đường thu hẹp phía bên phải',  
+    26: 'Công trường',    
+    27: 'Đèn tín hiệu giao thông',      
+    28: 'Dành cho người đi bộ',     
+    29: 'Trẻ em băng qua đường',     
+    30: 'Xe đạp qua đường',       
+    31: 'Cảnh báo băng tuyết',
+    32: 'Động vật hoang dã qua đường',      
+    33: 'Hết giới hạn tốc độ và cấm vượt',      
+    34: 'Quẹo phải phía trước',     
+    35: 'Quẹo trái phía trước',       
+    36: 'Đi thẳng',      
+    37: 'Đi thẳng hoặc quẹo phải',      
+    38: 'Đi thẳng hoặc quẹo trái',      
+    39: 'Giữ bên phải',     
+    40: 'Giữ bên trái',      
+    41: 'Vòng xuyến bắt buộc',     
+    42: 'Hết cấm vượt',      
+    43: 'Hết cấm vượt phương tiện > 3.5 tấn'
+}
                  
 #initialise GUI
-top=tk.Tk()
-top.geometry('800x600')
-top.title('Nhận dạng biển báo giao thông ')
-top.configure(background='#ffffff')
+class TrafficSignApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Nhận dạng biển báo giao thông')
+        self.setGeometry(100, 100, 1000, 750)
 
-label=Label(top,background='#ffffff', font=('arial',15,'bold'))
-sign_image = Label(top)
+        # Khởi tạo layout
+        self.layout = QVBoxLayout(self)
 
-def classify(file_path):
-    global label_packed
-    image = Image.open(file_path)
-    image = image.resize((30,30))
-    image = numpy.expand_dims(image, axis=0)
-    image = numpy.array(image)
-    print(image.shape)
-# predict classes
-    pred_probabilities = model.predict(image)[0]
-    pred = pred_probabilities.argmax(axis=-1)
-    sign = classes[pred+1]
-    print(sign)
-    label.configure(foreground='#011638', text=sign) 
-   
+        # Tiêu đề
+        self.heading = QLabel('Nhận dạng biển báo giao thông', self)
+        self.heading.setFont(QFont('Arial', 18, QFont.Bold))
+        self.heading.setAlignment(Qt.AlignCenter)
+        self.heading.setStyleSheet("color: Black; padding: -20px;")
 
-def show_classify_button(file_path):
-    classify_b=Button(top,text="Nhận dạng",command=lambda: classify(file_path),padx=10,pady=5)
-    classify_b.configure(background='#c71b20', foreground='white',font=('arial',10,'bold'))
-    classify_b.place(relx=0.79,rely=0.46)
+        # Tạo bảng QTableWidget
+        self.table = QTableWidget(self)
+        self.table.setRowCount(4)
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(['Tên', 'MSSV'])
 
-def upload_image():
-    try:
-        file_path=filedialog.askopenfilename()
-        uploaded=Image.open(file_path)
-        uploaded.thumbnail(((top.winfo_width()/2.25),(top.winfo_height()/2.25)))
-        im=ImageTk.PhotoImage(uploaded)
+        self.table.setColumnWidth(0, 300)
+        self.table.setColumnWidth(1, 200)
+
+        self.table.setMaximumHeight(200)
+
+        # Thêm dữ liệu vào bảng
+        self.add_student_data()
+
+        self.layout.addWidget(self.heading)
+        self.layout.addWidget(self.table)
+
+        # Upload Button
+        self.upload_button = QPushButton('Upload an image', self)
+        self.upload_button.setStyleSheet("background-color: #c71b20; color: white; font: bold 10pt Arial;")
+        self.upload_button.clicked.connect(self.upload_image)
+        self.layout.addWidget(self.upload_button)
+
+        # Label để hiển thị hình ảnh
+        self.sign_image = QLabel(self)  
+        self.sign_image.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.sign_image)
+
+        # Label kết quả phân loại
+        self.label = QLabel(self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setFont(QFont('Arial', 16, QFont.Bold))
+        self.label.setStyleSheet("color: Black; ")
+        self.layout.addWidget(self.label)
+
+        # Nút Nhận dạng
+        self.classify_button = QPushButton('Nhận dạng', self)
+        self.classify_button.setStyleSheet("background-color: #c71b20; color: white; font: bold 10pt Arial;")
+        self.classify_button.clicked.connect(self.classify_image)
+        self.layout.addWidget(self.classify_button)
+
+
+    def upload_image(self):
+        # Mở hộp thoại để chọn file ảnh
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg *.bmp)")
+    
+        if file_path:
+            # Lưu trữ đường dẫn file ảnh
+            self.file_path = file_path  # Lưu file_path vào thuộc tính của đối tượng
+
+            uploaded = Image.open(file_path)
+
+            uploaded.thumbnail((self.width(), self.height()))
+
+            # Chuyển hình ảnh từ PIL sang QPixmap
+            im = QPixmap(file_path)
+            im = im.scaled(360, 360, Qt.KeepAspectRatio)
+            self.sign_image.setPixmap(im)
+
+            self.label.setText("")
+
+    def classify_image(self):
+        if not hasattr(self, 'file_path') or not self.file_path:
+            self.label.setText("Chưa chọn ảnh!")
+            return
+
+        self.label.setText("Đang xử lí...")
+
+        try:
+            # Mở ảnh đã chọn
+            image = Image.open(self.file_path)
+            image = image.resize((30, 30))  # Resize cho phù hợp với mô hình
+            image = np.expand_dims(image, axis=0)
+            image = np.array(image)
+
+            # Dự đoán lớp biển báo
+            pred_probabilities = model.predict(image)[0]
+            pred = pred_probabilities.argmax(axis=-1)
+            sign = classes[pred + 1]
+
+            print(f"Predicted sign: {sign}")
+
+            self.label.setText(f"Nhận dạng biển báo: {sign}")
+
+        except Exception as e:
+            self.label.setText(f"Error: {str(e)}")
+
+    def add_student_data(self):
+        students = [
+            ("Trần Ngọc Tân", "22130247"),
+            ("Cao Tiến Thành", " 22130254"),
+            ("Nguyễn Ngọc Thịnh", " 22130270"),
+            ("Phong Hoàng Thiện", "22130264"),
+        ]
+
+        for row, student in enumerate(students):
+            self.table.setItem(row, 0, QTableWidgetItem(student[0]))
+            self.table.setItem(row, 1, QTableWidgetItem(student[1]))
         
-        sign_image.configure(image=im)
-        sign_image.image=im
-        label.configure(text='')
-        show_classify_button(file_path)
-    except:
-        pass
 
-upload=Button(top,text="Upload an image",command=upload_image,padx=10,pady=5)
-upload.configure(background='#c71b20', foreground='white',font=('arial',10,'bold'))
-
-upload.pack(side=BOTTOM,pady=50)
-sign_image.pack(side=BOTTOM,expand=True)
-label.pack(side=BOTTOM,expand=True)
-heading = Label(top, text="Nhận dạng biển báo giao thông",pady=10, font=('arial',20,'bold'))
-heading.configure(background='#ffffff',foreground='#364156')
-
-heading1 = Label(top, text="Môn Học: Cơ sở ứng dụng AI",pady=10, font=('arial',20,'bold'))
-heading1.configure(background='#ffffff',foreground='#364156')
-
-heading2 = Label(top, text="Danh sách thành viên nhóm",pady=5, font=('arial',20,'bold'))
-heading2.configure(background='#ffffff',foreground='#364156')
-
-heading3 = Label(top, text="Văn Huy Du MSSV: 20119205",pady=5, font=('arial',20,'bold'))
-heading3.configure(background='#ffffff',foreground='#364156')
-
-heading.pack()
-heading1.pack()
-heading2.pack()
-heading3.pack()
-top.mainloop()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = TrafficSignApp()
+    window.show()
+    sys.exit(app.exec_())
